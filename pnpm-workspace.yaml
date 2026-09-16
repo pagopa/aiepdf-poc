@@ -1,0 +1,10 @@
+packages:
+  - packages/*
+  - apps/*
+
+linkWorkspacePackages: true
+packageImportMethod: "clone-or-copy"
+cleanupUnusedCatalogs: true
+
+onlyBuiltDependencies:
+  - nx

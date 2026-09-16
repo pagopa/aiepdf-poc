@@ -1,0 +1,15 @@
+{
+  "name": "aeipdf-poc",
+  "private": true,
+  "type": "module",
+  "description": "AIEPDF PoC",
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@10.34.5+sha512.a4ee05f2f73658255bd6a89859c065a45c28a57daefae2c893a168ee2b73168c37b91e83e57ea67654ad03f03031746430e8bce38e362e042605fb8abc80192e",
+  "devDependencies": {
+    "@devcontainers/cli": "^0.89.0",
+    "@nx/eslint": "^23.2.1",
+    "@nx/js": "^23.2.1",
+    "@nx/vitest": "^23.2.1",
+    "nx": "23.2.1"
+  }
+}
