@@ -1,11 +1,11 @@
 data "azuread_group" "admins" {
-  display_name = "dx-d-aiepdf-adgroup-admin"
+  display_name = "dx-d-adgroup-admin"
 }
 
 data "azuread_group" "developers" {
-  display_name = "dx-d-aiepdf-adgroup-developers"
+  display_name = "dx-d-adgroup-developers"
 }
 
 data "azuread_group" "externals" {
-  display_name = "dx-d-aiepdf-adgroup-externals"
+  display_name = "dx-d-adgroup-externals"
 }
