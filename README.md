@@ -1,4 +1,4 @@
-# aeipdf-poc
+# aiepdf-poc
 
 AIEPDF PoC
 
@@ -44,7 +44,7 @@ This project uses specific versions of `node`, `pnpm` and `terraform`. To make s
 2. Install `node` at the right version used by this project
 
 ```bash
-cd aeipdf-poc
+cd aiepdf-poc
 nodenv install
 ```
 
