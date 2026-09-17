@@ -17,7 +17,7 @@ module "azure-DEV-DEVEX_core_values" {
     storage_account_name = "dxditntfstatest01"
     subscription_id      = "35e6e3b2-4388-470e-a1b9-ad3bc34326d1"
     container_name       = "terraform-state"
-    key                  = "dx/aiepdf/core.tfstate"
+    key                  = "dx.core.dev.tfstate"
   }
 }
 
