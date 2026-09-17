@@ -1,0 +1,13 @@
+terraform {
+  required_providers {
+    github = {
+      source  = "integrations/github"
+      version = "~> 6.12"
+    }
+  }
+}
+
+# GitHub provider configuration
+provider "github" {
+  owner = "pagopa"
+}

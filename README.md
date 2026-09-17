@@ -1,2 +1,169 @@
 # aeipdf-poc
+
 AIEPDF PoC
+
+## Getting Started
+
+### Using Devcontainer
+
+The preferred way to setup your development environment is to use [Devcontainer](https://containers.dev) ([Host system requirements](https://code.visualstudio.com/docs/devcontainers/containers#_system-requirements)).
+
+> [!TIP]
+> If you are on macOS we recommend using [Rancher Desktop](https://rancherdesktop.io/) configured to use `VZ` as _Virtual Machine Type_ and `virtiofs` as volume _Mount Type_.
+
+#### Visual Studio Code
+
+1. Make sure `docker` is available and running in your host system
+2. Install the [Devcontainer Extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+3. Open the project root folder and select `Dev Containers: Reopen in Container` from the command palette
+4. Visual Studio Code will build the devcontainer image and then open the project inside the container, with all the needed tools and extension configured
+
+#### Console
+
+If you use a code editor that doesn't support Dev Container, you can still run it in your terminal.
+
+1. Follow the instructions of the following chapter ("Using local machine") to setup your local environment
+2. Run devcontainer from your terminal
+```bash
+pnpm devcontainer up --workspace-folder .
+pnpm devcontainer exec --workspace-folder . /bin/bash
+```
+
+### Using local machine
+
+This project uses specific versions of `node`, `pnpm` and `terraform`. To make sure your development setup matches with production follow the recommended installation methods.
+
+1. Install and configure the following tools in your machine
+
+- [nodenv](https://github.com/nodenv/nodenv) - Node version manager
+- [tfenv](https://github.com/tfutils/tfenv) - Terraform version manager
+- [terraform-docs](https://terraform-docs.io/user-guide/installation/) - Generate Terraform modules documentation in various formats
+- [tflint](https://github.com/terraform-linters/tflint) - A Pluggable Terraform Linter
+- [pre-commit](https://pre-commit.com/) - A framework for managing and maintaining multi-language pre-commit hooks
+
+2. Install `node` at the right version used by this project
+
+```bash
+cd aeipdf-poc
+nodenv install
+```
+
+3. Install dependencies using `pnpm`
+
+```bashbash
+pnpm install
+```
+
+4. Build all the workspaces contained by this repo
+```bash
+pnpm nx run-many -t build
+```
+
+### GitHub Copilot plugins
+
+This repository includes `.github/copilot/settings.json` with the
+recommended PagoPA DX marketplace and plugin suggestions for GitHub Copilot.
+
+Keep the file committed to avoid per-developer setup drift. If your team does
+not use some of the suggested plugins, edit the related flags in that file.
+See the DX documentation for details:
+https://dx.pagopa.it/docs/coding-with-ai/plugin-marketplace
+
+## Useful commands
+
+This project uses `pnpm` and `nx` with workspaces to manage projects and dependencies. Here is a list of useful commands to work in this repo.
+
+### Work with workspaces
+
+```bash
+# build all the workspaces using Nx
+pnpm nx run-many -t build
+
+# to execute COMMAND on WORKSPACE_NAME
+pnpm --filter WORKSPACE_NAME COMMAND
+# to execute COMMAND on all workspaces
+pnpm -r COMMAND
+```
+
+### Add dependencies
+
+```bash
+# add a dependency to the workspace root
+pnpm -w add vitest
+
+# add vitest as devDependency on citizen-func
+pnpm --filter citizen-func add -D vitest
+
+# add zod as dependency on each workspace
+pnpm -r add zod
+```
+
+## Folder structure
+
+### `/apps`
+
+It contains the applications included in the project.
+Each folder is meant to produce a deployable artifact; how and where to deploy it is demanded to a single application.
+
+Each sub-folder is a workspace.
+
+### `/packages`
+
+Packages are reusable modules that implement a specific logic of the project. They are meant for sharing implementations across other apps and packages of the same projects, as well as being published in public registries.
+
+Packages that are meant for internal code sharing have `private: true` in their `package.json` file; all the others are meant to be published into the public registry.
+
+Each sub-folder is a workspace.
+
+### `/infra`
+
+It contains the _infrastructure-as-code_ project that defines the resources for the project as well as the execution environments. Database schemas and migrations are defined here too, in case they are needed.
+
+### `/docs`
+
+Technical documentation about the project. Topics that may be included are architecture overviews, [ADRs](https://adr.github.io/), coding standards, and anything that can be relevant for a developer approaching the project as a contributor or as an auditor.
+
+User documentation doesn't usually go in here. For public packages, it must go in the package's `README` file so that it will also be uploaded to the registry; user-faced documentation websites, when needed by the project, go under the `/apps` folder as they are treated as end-user applications.
+
+## Releases
+
+We use [Nx Release](https://nx.dev/features/manage-releases) to automate package versioning and releases.
+
+Each Pull Request that includes changes that require a version bump must include a _version plan file_ that describes the introduced changes.
+
+To create a _version plan file_ run the following command and follow the instructions.
+
+```bash
+pnpm nx release plan
+```
+
+#### How it works
+
+- When opening a Pull Request with a change intended to be published, add a version plan file that describes the change and the version bump type (patch, minor, major) for each involved app or package.
+- Once the Pull Request is merged, a new Pull Request named `Version Packages` will be automatically opened with all the release changes such as version bumping for each involved app or package and changelog update; if an open `Version Packages` PR already exists, it will be updated and the package versions calculated accordingly.
+Only apps and packages mentioned in the version plan files will be bumped.
+- Review the `Version Packages` PR and merge it when ready. Version plan files will be deleted.
+- A Release entry is created for each app or package whose version has been bumped.
+
+### Folder structure
+
+The IaC template contains the following projects:
+
+#### repository
+
+Set up the current repository settings.
+It's intended to be executed once on a local machine at project initialization.
+
+```sh
+cd infra/repository
+
+# Substitute subscription_name with the actual subscription name if you selected Azure as CSP
+az account set --name <subscription_name>
+
+terraform init
+terraform plan
+terraform apply
+```
+### Workflow automation
+
+The workflow `infra_plan.yaml` is executed on every PR that edits the `infra/resources` folder or the workflow definition itself. It executes a `terraform plan` and comments the PR with the result. If the plan fails, the workflow fails.
