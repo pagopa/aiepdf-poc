@@ -7,6 +7,6 @@ module "github_repository" {
     description            = "AIEPDF PoC"
     topics                 = []
     reviewers_teams        = []
-    environments           = []
+    environments           = ["dev", "prod"]
   }
 }
