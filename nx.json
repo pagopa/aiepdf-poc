@@ -20,7 +20,43 @@
         "ci": {
           "coverage": true
         }
-      }
+      },
+      "dependsOn": [
+        "^build"
+      ]
+    },
+    "@nx/esbuild:esbuild": {
+      "cache": true,
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "default",
+        "^default",
+        {
+          "json": "{workspaceRoot}/tsconfig.json",
+          "fields": [
+            "extends",
+            "files",
+            "include"
+          ]
+        },
+        "{workspaceRoot}/pnpm-workspace.yaml",
+        {
+          "json": "{workspaceRoot}/package.json",
+          "fields": [
+            "packageManager",
+            "pnpm.onlyBuiltDependencies",
+            "pnpm.neverBuiltDependencies",
+            "pnpm.allowBuilds",
+            "pnpm.supportedArchitectures",
+            "pnpm.patchedDependencies"
+          ]
+        },
+        {
+          "runtime": "node -e \"try{console.log('pnpm major '+require('child_process').execSync('pnpm --version',{stdio:['ignore','pipe','ignore']}).toString().trim().split('.')[0])}catch{console.log('pnpm major unavailable')}\""
+        }
+      ]
     }
   },
   "release": {
@@ -77,7 +113,45 @@
           "watchDepsName": "watch-deps"
         }
       }
+    },
+    {
+      "plugin": "@nx/vitest",
+      "options": {
+        "testTargetName": "test",
+        "ciTargetName": "test-ci",
+        "testMode": "watch"
+      }
+    },
+    {
+      "plugin": "@nx/docker",
+      "options": {
+        "buildTarget": {
+          "name": "docker:build"
+        },
+        "runTarget": {
+          "name": "docker:run"
+        }
+      }
+    },
+    {
+      "plugin": "@nx/next/plugin",
+      "options": {
+        "startTargetName": "start",
+        "buildTargetName": "build",
+        "devTargetName": "dev",
+        "serveStaticTargetName": "serve-static",
+        "buildDepsTargetName": "build-deps",
+        "watchDepsTargetName": "watch-deps"
+      }
     }
   ],
-  "analytics": false
+  "analytics": false,
+  "generators": {
+    "@nx/next": {
+      "application": {
+        "style": "css",
+        "linter": "eslint"
+      }
+    }
+  }
 }

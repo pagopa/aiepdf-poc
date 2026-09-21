@@ -315,3 +315,10 @@ terraform.rc
 .nx/polygraph
 .claude/worktrees
 .claude/settings.local.json
+
+# TypeScript incremental/declaration build output (tsc --build)
+out-tsc/
+*.tsbuildinfo
+
+# Vitest generated timestamps
+vitest.config.*.timestamp*

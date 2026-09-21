@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compileOnSave": false,
+  "files": [],
+  "references": [
+    {
+      "path": "./packages/adhesion-domain"
+    },
+    {
+      "path": "./packages/adhesion-contracts"
+    },
+    {
+      "path": "./packages/adhesion-verification"
+    },
+    {
+      "path": "./apps/adhesion-api"
+    },
+    {
+      "path": "./apps/adhesion-web"
+    }
+  ]
+}
