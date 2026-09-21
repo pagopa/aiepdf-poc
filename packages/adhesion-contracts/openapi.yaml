@@ -1,0 +1,291 @@
+openapi: 3.1.0
+info:
+  title: CED Adhesion — Signed Agreement Upload API
+  version: 0.2.0
+  summary: >-
+    Pilot contract that lets a Partner Entity upload a signed agreement
+    and read the resulting practice status.
+  description: |
+    > STATUS: proposed for the pilot, reflecting the decisions taken on
+    > 2026-09-21 (spikes resolved). Source: DR `design-review.md`
+    > | JTBD-01 | UC-01 | contracts.item-001.
+    >
+    > Decisions applied here:
+    > - open.item-002: CAdES only, `.p7m` / `application/pkcs7-mime`.
+    > - open.item-004: no entity authentication in the pilot; `security: []`.
+    > - open.item-010: maximum upload size 10 MB.
+    > - uc-open-01: a repeated step-1 upload is rejected with `409`.
+    > - open.item-001: the agreement template version is a configuration
+    >   value, not enforced by the contract.
+    >
+    > Remaining gaps:
+    > - open.item-006: the CAdES verification adapter is in-process; the
+    >   trust chain and signer identity are explicitly out of pilot scope.
+    > - `PRACTICE_NOT_FOUND` is not defined by UC-01 (whose precondition is
+    >   that the practice exists); it is the transport-level answer used by
+    >   the pilot API and is tracked as a contract gap.
+    >
+    > The server hostnames are placeholders until the Container App domain
+    > is provisioned.
+  contact:
+    name: CED Adhesion — Engineering
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+servers:
+  - url: https://api.ced.{env}.pagopa.it/adhesion/v1
+    description: Placeholder. Environment hostnames are provisioned by Terraform.
+    variables:
+      env:
+        default: dev
+        description: Environment code.
+tags:
+  - name: Adhesion
+    description: Adhesion practice lifecycle for the pilot.
+  - name: Agreements
+    description: Signed agreement documents.
+paths:
+  /practices/{onboardingId}/agreements:
+    post:
+      operationId: uploadSignedAgreement
+      summary: Upload a signed agreement for a practice
+      description: |
+        Accepts a multipart upload of a signed agreement for an existing
+        Practice. On success the API verifies the file extension, the CAdES
+        signature validity, persists the Document with `signingStep=1`, moves
+        the Practice from `REQUEST` to `PENDING`, and returns the new
+        `documentId`.
+      tags:
+        - Agreements
+      parameters:
+        - $ref: '#/components/parameters/OnboardingId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadSignedAgreementRequest'
+            encoding:
+              file:
+                contentType: application/pkcs7-mime
+      responses:
+        '201':
+          description: Agreement accepted and practice moved to PENDING.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadSignedAgreementResponse'
+        '400':
+          description: >-
+            The upload was rejected before any state change. The typed error is
+            `AGREEMENT_EXTENSION_INVALID`, `AGREEMENT_SIGNATURE_INVALID`, or
+            `AGREEMENT_FILE_TOO_LARGE`.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                extensionInvalid:
+                  value:
+                    type: https://errors.ced.pagopa.it/agreement-extension-invalid
+                    title: Agreement extension invalid
+                    status: 400
+                    detail: The uploaded file has a disallowed extension.
+                    errorCode: AGREEMENT_EXTENSION_INVALID
+                signatureInvalid:
+                  value:
+                    type: https://errors.ced.pagopa.it/agreement-signature-invalid
+                    title: Agreement signature invalid
+                    status: 400
+                    detail: The agreement signature is malformed or invalid.
+                    errorCode: AGREEMENT_SIGNATURE_INVALID
+                fileTooLarge:
+                  value:
+                    type: https://errors.ced.pagopa.it/agreement-file-too-large
+                    title: Agreement file too large
+                    status: 400
+                    detail: The uploaded file exceeds the allowed size.
+                    errorCode: AGREEMENT_FILE_TOO_LARGE
+        '404':
+          description: The practice does not exist.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                practiceNotFound:
+                  value:
+                    type: https://errors.ced.pagopa.it/practice-not-found
+                    title: Practice not found
+                    status: 404
+                    detail: The practice does not exist.
+                    errorCode: PRACTICE_NOT_FOUND
+        '409':
+          description: >-
+            The practice is not in `REQUEST`, or a valid step 1 already exists.
+            The typed error is `PRACTICE_STATE_INVALID`.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                practiceStateInvalid:
+                  value:
+                    type: https://errors.ced.pagopa.it/practice-state-invalid
+                    title: Practice state invalid
+                    status: 409
+                    detail: The practice is not in the REQUEST state.
+                    errorCode: PRACTICE_STATE_INVALID
+  /practices/{onboardingId}:
+    get:
+      operationId: getPractice
+      summary: Read the current practice status
+      description: >-
+        Returns the current status of the practice so the UI can confirm the
+        transition to `PENDING` after an upload.
+      tags:
+        - Adhesion
+      parameters:
+        - $ref: '#/components/parameters/OnboardingId'
+      responses:
+        '200':
+          description: Current practice status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Practice'
+        '404':
+          description: Practice not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                practiceNotFound:
+                  value:
+                    type: https://errors.ced.pagopa.it/practice-not-found
+                    title: Practice not found
+                    status: 404
+                    detail: The practice does not exist.
+                    errorCode: PRACTICE_NOT_FOUND
+components:
+  parameters:
+    OnboardingId:
+      name: onboardingId
+      in: path
+      required: true
+      description: Identifier of the adhesion practice created before the upload step.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 64
+  schemas:
+    UploadSignedAgreementRequest:
+      type: object
+      required:
+        - file
+      properties:
+        file:
+          type: string
+          format: binary
+          description: >-
+            The signed agreement. CAdES only (`.p7m`), maximum 10 MB.
+        signingStep:
+          type: integer
+          minimum: 1
+          default: 1
+          description: >-
+            Position of this document in the signing sequence. The pilot only
+            accepts step 1 (see UC-01 A1).
+        agreementTemplateVersion:
+          type: string
+          description: >-
+            Version of the agreement template. Not frozen (`open.item-001`);
+            accepted for forward compatibility and not enforced.
+      additionalProperties: false
+    UploadSignedAgreementResponse:
+      type: object
+      required:
+        - documentId
+        - status
+      properties:
+        documentId:
+          type: string
+          description: Identifier of the persisted Document.
+        status:
+          $ref: '#/components/schemas/PracticeStatus'
+        signingStep:
+          type: integer
+          minimum: 1
+          description: Position of the persisted document.
+      additionalProperties: false
+    Practice:
+      type: object
+      required:
+        - onboardingId
+        - status
+      properties:
+        onboardingId:
+          type: string
+        status:
+          $ref: '#/components/schemas/PracticeStatus'
+      additionalProperties: false
+    PracticeStatus:
+      type: string
+      description: Practice lifecycle state for the pilot.
+      enum:
+        - REQUEST
+        - PENDING
+    Problem:
+      type: object
+      description: RFC 9457 problem detail carrying a stable semantic error code.
+      required:
+        - type
+        - title
+        - status
+        - errorCode
+      properties:
+        type:
+          type: string
+          format: uri
+          description: Stable URI reference for the error type.
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
+          description: Human-readable explanation. Must never contain PII (NFR-04).
+        instance:
+          type: string
+          format: uri-reference
+        errorCode:
+          type: string
+          description: Stable semantic error identifier owned by the Use Cases.
+          enum:
+            - AGREEMENT_EXTENSION_INVALID
+            - AGREEMENT_SIGNATURE_INVALID
+            - AGREEMENT_FILE_TOO_LARGE
+            - PRACTICE_STATE_INVALID
+            - PRACTICE_NOT_FOUND
+            - UPLOAD_DISABLED
+      additionalProperties: false
+security: []
+x-pilot-limits:
+  maxUploadBytes: 10485760
+  allowedExtensions:
+    - .p7m
+  allowedSignatureFormats:
+    - CAdES
+x-gaps:
+  - source: open.item-006
+    topic: CAdES trust chain and signer identity are out of pilot scope.
+  - source: open.item-001
+    topic: Agreement template version is accepted but not enforced.
+  - source: pilot-extension
+    topic: >-
+      `PRACTICE_NOT_FOUND` and `UPLOAD_DISABLED` are transport-level answers not
+      defined by UC-01; they are needed by the API and must be confirmed with
+      Product.
