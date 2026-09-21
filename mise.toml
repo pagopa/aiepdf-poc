@@ -1,2 +1,88 @@
 [tools]
 terraform = "latest"
+
+# Local containerized environment for the CED Adhesion pilot.
+#
+# The stack (PostgreSQL, Azurite, API, static UI) is defined in `compose.yaml`.
+# These tasks build the artifacts first, because the API image is assembled from
+# the Nx pruned output (`apps/adhesion-api/dist`) and nginx serves the built
+# Next.js export (`apps/adhesion-web/out`).
+
+[tasks."local:build-api"]
+description = "Build the adhesion-api production bundle and pruned output"
+run = "pnpm exec nx run adhesion-api:prune"
+
+[tasks."local:build-web"]
+description = "Build the adhesion-web static export pointing at the local API"
+run = '''
+export NEXT_PUBLIC_API_BASE_URL="${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3000}"
+pnpm exec nx run adhesion-web:build
+# Rebuilding recreates `out/`; nginx is bind-mounted on it, so remount when the
+# stack is already running or it would serve 403 from the previous inode.
+if docker compose ps web --status running -q 2>/dev/null | grep -q .; then
+  docker compose restart web >/dev/null
+fi
+'''
+
+[tasks."local:up"]
+description = "Build and start the full stack (postgres, azurite, api, web)"
+depends = ["local:build-api", "local:build-web"]
+run = "docker compose up --build -d"
+
+[tasks."local:down"]
+description = "Stop the stack and remove volumes"
+run = "docker compose down -v"
+
+[tasks."local:logs"]
+description = "Follow the stack logs"
+run = "docker compose logs -f"
+
+[tasks."local:infra"]
+description = "Start only the dependencies (postgres + azurite) for host-based development"
+run = "docker compose up -d postgres azurite"
+
+[tasks."local:api"]
+description = "Run the API on the host against the containerized dependencies"
+run = '''
+export PERSISTENCE=postgres
+export POSTGRES_HOST=localhost
+export POSTGRES_USER=adhesion
+export POSTGRES_ADMIN_PASSWORD=adhesion
+export POSTGRES_DB=adhesion
+export POSTGRES_PORT="${POSTGRES_HOST_PORT:-15432}"
+export POSTGRES_SSL=false
+export STORAGE=azure
+export AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://localhost:${AZURITE_HOST_PORT:-11000}/devstoreaccount1;"
+export AZURE_STORAGE_CONTAINER=agreements
+export AZURE_STORAGE_CREATE_CONTAINER=true
+export CORS_ALLOWED_ORIGINS="http://localhost:8080"
+pnpm exec nx run adhesion-api:serve
+'''
+
+[tasks."local:web"]
+description = "Run the UI dev server on the host against the local API"
+run = '''
+export NEXT_PUBLIC_API_BASE_URL="${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3000}"
+pnpm exec nx run adhesion-web:serve
+'''
+
+[tasks."local:smoke"]
+description = "Smoke-test a running local stack (health, readiness, CORS, typed 404, UI wiring)"
+run = '''
+node scripts/smoke-test.mjs \
+  --base-url "${SMOKE_BASE_URL:-http://localhost:3000}" \
+  --origin "http://localhost:8080" \
+  --web-url "${SMOKE_WEB_URL:-http://localhost:8080}"
+'''
+
+[tasks."local:seed"]
+description = "Create or reset a REQUEST practice for local upload tests (arg: onboarding id)"
+run = '''
+set -e
+ID="${1:-demo-practice}"
+docker exec adhesion-pilot-postgres-1 psql -U adhesion -d adhesion -c \
+  "delete from documents where onboarding_id = '$ID';
+   insert into practices (onboarding_id, status) values ('$ID', 'REQUEST')
+   on conflict (onboarding_id) do update set status = 'REQUEST';"
+echo "Practice '$ID' is now REQUEST with no documents."
+'''
