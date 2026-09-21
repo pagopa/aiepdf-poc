@@ -1,0 +1,33 @@
+name: Terraform plan on dev resources
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+      - ready_for_review
+    paths:
+      - "infra/resources/dev/**"
+      - "infra/resources/_modules/**"
+      - ".github/workflows/_release-terraform-plan-dev-resources.yaml"
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+jobs:
+  dev_resources_plan:
+    uses: pagopa/dx/.github/workflows/infra_plan.yaml@main
+    name: Dev resources - Plan
+    secrets: inherit
+    with:
+      environment: dev
+      base_path: infra/resources
+      use_private_agent: true
+      use_labels: true
+      # The bootstrap module creates the GitHub environments as infra-<env>-ci/cd.
+      override_github_environment: infra-dev

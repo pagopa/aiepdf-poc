@@ -1,0 +1,43 @@
+name: Adhesion Web Static Web App - dev
+
+# Builds the Next.js static export and deploys it to the Azure Static Web App.
+# The resource names must match the Terraform outputs
+# (`static_web_app_name`, `resource_group_name`) in `infra/resources/dev`.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/adhesion-web/**"
+      - ".github/workflows/_release-static-web-app-dev.yaml"
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - closed
+    branches:
+      - main
+    paths:
+      - "apps/adhesion-web/**"
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+jobs:
+  deploy:
+    name: Release Adhesion Web
+    uses: pagopa/dx/.github/workflows/release-azure-staticapp-v1.yaml@main
+    secrets: inherit
+    with:
+      workspace_name: adhesion-web
+      output_dir: out
+      static_web_app_name: dx-d-itn-aiepdf-adhesion-web-stapp-01
+      resource_group_name: dx-d-itn-common-rg-01
+      environment: app-dev
+      use_private_agent: true
+      use_labels: true
