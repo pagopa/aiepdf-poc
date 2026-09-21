@@ -27,7 +27,8 @@ jobs:
     with:
       environment: dev
       base_path: infra/resources
-      use_private_agent: true
-      use_labels: true
+      # GitHub-hosted runner: no self-hosted runner is registered for this
+      # repository, so a private agent leaves the job queued.
+      use_private_agent: false
       # The bootstrap module creates the GitHub environments as infra-<env>-ci/cd.
       override_github_environment: infra-dev

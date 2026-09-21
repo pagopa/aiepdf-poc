@@ -39,5 +39,7 @@ jobs:
       static_web_app_name: dx-d-itn-aiepdf-adhesion-web-stapp-01
       resource_group_name: dx-d-itn-common-rg-01
       environment: app-dev
-      use_private_agent: true
-      use_labels: true
+      # GitHub-hosted runner: the runner configured by the bootstrapper only
+      # carries the `dev` label, so the `app-dev` label requested here would
+      # never be picked up.
+      use_private_agent: false
