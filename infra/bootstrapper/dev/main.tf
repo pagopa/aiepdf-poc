@@ -88,3 +88,30 @@ resource "azurerm_role_assignment" "app_cd_appconfig_data_owner" {
   principal_id         = module.azure-DEV-DEVEX_bootstrap.identities.app.cd.principal_id
   description          = "Allow the aiepdf-poc App CD identity to import settings into App Configuration"
 }
+
+# Infra plan read access.
+#
+# The DX Infra CI custom roles do not cover Static Web Apps or App
+# Configuration, but the Terraform provider refreshes both computed
+# attributes on every plan (`staticSites/listSecrets` for the Static Web App
+# deployment token, `configurationStores/listKeys` for the App Configuration
+# access keys). The plan identity is Infra CI, so grant the read actions on the
+# repository resource group where both resources live. Infra CD already has
+# them through the broad `DX Infra CD Resource Groups` role.
+resource "azurerm_role_assignment" "infra_ci_static_web_app_list_secrets" {
+  provider = azurerm.DEV-DEVEX
+
+  scope                = module.azure-DEV-DEVEX_bootstrap.resource_group.id
+  role_definition_name = "PagoPA Static Web Apps List Secrets"
+  principal_id         = module.azure-DEV-DEVEX_bootstrap.identities.infra.ci.principal_id
+  description          = "Allow the aiepdf-poc Infra CI identity to refresh the Static Web App during Terraform plan"
+}
+
+resource "azurerm_role_assignment" "infra_ci_app_configuration_contributor" {
+  provider = azurerm.DEV-DEVEX
+
+  scope                = module.azure-DEV-DEVEX_bootstrap.resource_group.id
+  role_definition_name = "App Configuration Contributor"
+  principal_id         = module.azure-DEV-DEVEX_bootstrap.identities.infra.ci.principal_id
+  description          = "Allow the aiepdf-poc Infra CI identity to refresh the App Configuration access keys during Terraform plan"
+}
