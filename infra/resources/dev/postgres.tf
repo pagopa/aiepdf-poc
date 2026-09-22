@@ -32,3 +32,15 @@ module "postgres" {
 
   tags = local.tags
 }
+
+# Application database.
+#
+# The module creates the server, not the databases, and the startup migrations
+# run inside the application database (`contracts.item-002`), so Terraform has
+# to create it before the container app can boot.
+resource "azurerm_postgresql_flexible_server_database" "adhesion" {
+  name      = local.postgres.database_name
+  server_id = module.postgres.postgres.id
+  charset   = "UTF8"
+  collation = "en_US.utf8"
+}
