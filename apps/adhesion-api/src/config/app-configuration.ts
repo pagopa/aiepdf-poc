@@ -31,6 +31,16 @@ export async function connectAppConfiguration(input: {
       watchedSettings: [{ key: 'Sentinel' }],
       refreshIntervalInMs: 300_000,
     },
+    // Feature flags are not loaded unless explicitly enabled. Without this the
+    // feature manager resolves every flag to its default (`false`), so the
+    // upload kill switch reads as disabled in a healthy deployment.
+    featureFlagOptions: {
+      enabled: true,
+      refresh: {
+        enabled: true,
+        refreshIntervalInMs: 300_000,
+      },
+    },
   });
 
   const featureManager = new FeatureManager(
