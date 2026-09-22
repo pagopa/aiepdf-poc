@@ -17,7 +17,16 @@ import {
 export interface AppConfigurationClient {
   readSetting(key: string): Promise<string | undefined>;
   isFeatureEnabled(flagName: string): Promise<boolean>;
+  /** Stops the background refresh. Useful in tests; in the server it runs for the process lifetime. */
+  dispose(): void;
 }
+
+/**
+ * How often the provider is asked to reload watched settings (`Sentinel`) and
+ * feature flags. The SDK does not poll on its own: it only checks the server
+ * when `refresh()` is called, and rate-limits those calls to this interval.
+ */
+const refreshIntervalMs = 30_000;
 
 export async function connectAppConfiguration(input: {
   endpoint: string;
@@ -29,7 +38,7 @@ export async function connectAppConfiguration(input: {
     refreshOptions: {
       enabled: true,
       watchedSettings: [{ key: 'Sentinel' }],
-      refreshIntervalInMs: 300_000,
+      refreshIntervalInMs: refreshIntervalMs,
     },
     // Feature flags are not loaded unless explicitly enabled. Without this the
     // feature manager resolves every flag to its default (`false`), so the
@@ -38,10 +47,21 @@ export async function connectAppConfiguration(input: {
       enabled: true,
       refresh: {
         enabled: true,
-        refreshIntervalInMs: 300_000,
+        refreshIntervalInMs: refreshIntervalMs,
       },
     },
   });
+
+  // The provider reloads nothing by itself: without this timer the `Sentinel`
+  // setting and the feature flags keep their startup values forever. Failures
+  // are logged and never crash the API, which keeps serving the last good
+  // configuration.
+  const refreshTimer = setInterval(() => {
+    void appConfig.refresh().catch((error: unknown) => {
+      console.warn('App Configuration refresh failed', error);
+    });
+  }, refreshIntervalMs);
+  refreshTimer.unref?.();
 
   const featureManager = new FeatureManager(
     new ConfigurationMapFeatureFlagProvider(appConfig),
@@ -53,5 +73,6 @@ export async function connectAppConfiguration(input: {
       return Promise.resolve(typeof value === 'string' ? value : undefined);
     },
     isFeatureEnabled: (flagName) => featureManager.isEnabled(flagName),
+    dispose: () => clearInterval(refreshTimer),
   };
 }
