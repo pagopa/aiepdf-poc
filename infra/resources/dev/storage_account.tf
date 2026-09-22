@@ -7,7 +7,7 @@ module "storage_account" {
   version = "~> 4.0"
 
   environment         = local.environment
-  resource_group_name = module.azure_core_values.common_resource_group_name
+  resource_group_name = data.azurerm_resource_group.workload.name
   use_case            = "development"
 
   subnet_pep_id                        = module.azure_core_values.common_pep_snet.id

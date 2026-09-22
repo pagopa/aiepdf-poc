@@ -9,7 +9,7 @@ resource "azurerm_static_web_app" "this" {
     app_name      = "adhesion-web"
     resource_type = "static_web_app"
   }))
-  resource_group_name = module.azure_core_values.common_resource_group_name
+  resource_group_name = data.azurerm_resource_group.workload.name
   location            = "westeurope"
   sku_size            = "Standard"
   sku_tier            = "Standard"

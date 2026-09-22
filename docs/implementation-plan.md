@@ -101,7 +101,7 @@ workflows). DX registry modules only:
 
 | Module | Version | Purpose |
 | --- | --- | --- |
-| `pagopa-dx/azure-core-values-exporter/azurerm` | `~> 2.0` | Reuse `common_vnet`, `common_pep_snet`, `common_key_vault`, `application_insights`, `common_log_analytics_workspace`, `common_resource_group_name` |
+| `pagopa-dx/azure-core-values-exporter/azurerm` | `~> 2.0` | Reuse `common_vnet`, `common_pep_snet`, `common_key_vault`, `application_insights`, `common_log_analytics_workspace`; the workload resources live in the repository resource group created by the bootstrapper |
 | `pagopa-dx/azure-container-app-environment/azurerm` | `~> 4.0` | Container Apps environment + subnet via `dx_available_subnet_cidr` |
 | `pagopa-dx/azure-container-app/azurerm` | `~> 7.0` | `adhesion-api` container, managed identity, ingress, App Configuration endpoint, health probes |
 | `pagopa-dx/azure-storage-account/azurerm` | `~> 4.0` | Private container for agreement blobs |
@@ -262,7 +262,7 @@ Static Web App, and least-privilege role assignments for the app identity.
   integration test against a real PostgreSQL yet (Testcontainers).
 - Container App deploy workflows hardcode the resource names
   (`dx-d-itn-aiepdf-adhesion-ca-01`, `dx-d-itn-aiepdf-adhesion-web-stapp-01`,
-  `dx-d-itn-aiepdf-adhesion-appcs-01`, RG `dx-d-itn-common-rg-01`) because the
+  `dx-d-itn-aiepdf-adhesion-appcs-01`, RG `dx-d-itn-aiepdf-rg-01`) because the
   DX reusable workflows take literal inputs; they must match the Terraform
   outputs.
 - `@pagopa/mui-italia` and Azure App Configuration are not `adopt` on the DX

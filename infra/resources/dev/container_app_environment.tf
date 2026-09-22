@@ -9,7 +9,7 @@ module "container_app_environment" {
   version = "~> 4.0"
 
   environment         = local.environment
-  resource_group_name = module.azure_core_values.common_resource_group_name
+  resource_group_name = data.azurerm_resource_group.workload.name
   use_case            = "development"
 
   log_analytics_workspace_id = module.azure_core_values.common_log_analytics_workspace.id

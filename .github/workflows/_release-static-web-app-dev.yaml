@@ -37,7 +37,7 @@ jobs:
       workspace_name: adhesion-web
       output_dir: out
       static_web_app_name: dx-d-itn-aiepdf-adhesion-web-stapp-01
-      resource_group_name: dx-d-itn-common-rg-01
+      resource_group_name: dx-d-itn-aiepdf-rg-01
       environment: app-dev
       # The bootstrapper registers the private runner with the `dev` label only,
       # so ask for that while keeping `app-dev` for the GitHub deployment target

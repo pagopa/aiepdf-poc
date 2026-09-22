@@ -9,7 +9,7 @@
 
 | Component | Azure resource | Purpose |
 | --- | --- | --- |
-| Adhesion API | Container App `dx-d-itn-aiepdf-adhesion-ca-01` (RG `dx-d-itn-common-rg-01`) | Upload and status endpoints |
+| Adhesion API | Container App `dx-d-itn-aiepdf-adhesion-ca-01` (RG `dx-d-itn-aiepdf-rg-01`) | Upload and status endpoints |
 | Upload UI | Static Web App `dx-d-itn-aiepdf-adhesion-web-stapp-01` | Next.js form and confirmation |
 | Practice registry | PostgreSQL Flexible Server | Practices and Documents |
 | Agreement storage | Storage Account, private `agreements` container | Confidential CAdES blobs |

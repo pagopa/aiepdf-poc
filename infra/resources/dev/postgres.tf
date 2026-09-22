@@ -12,7 +12,7 @@ module "postgres" {
   version = "~> 5.0"
 
   environment         = local.environment
-  resource_group_name = module.azure_core_values.common_resource_group_name
+  resource_group_name = data.azurerm_resource_group.workload.name
   # "default" is the only use case supported by the module.
   use_case = "default"
 

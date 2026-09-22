@@ -10,7 +10,7 @@ module "app_configuration" {
   version = "~> 0.1"
 
   environment         = local.environment
-  resource_group_name = module.azure_core_values.common_resource_group_name
+  resource_group_name = data.azurerm_resource_group.workload.name
   subscription_id     = data.azurerm_subscription.current.subscription_id
   use_case            = "default"
 

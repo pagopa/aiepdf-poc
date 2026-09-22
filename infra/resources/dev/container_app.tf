@@ -8,7 +8,7 @@ module "container_app" {
   version = "~> 7.0"
 
   environment         = local.environment
-  resource_group_name = module.azure_core_values.common_resource_group_name
+  resource_group_name = data.azurerm_resource_group.workload.name
   use_case            = "development"
 
   container_app_environment_id       = module.container_app_environment.id

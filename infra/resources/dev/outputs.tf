@@ -5,7 +5,7 @@ output "container_app_name" {
 
 output "resource_group_name" {
   description = "The resource group that hosts the workload resources."
-  value       = module.azure_core_values.common_resource_group_name
+  value       = data.azurerm_resource_group.workload.name
 }
 
 output "container_app_fqdn" {
