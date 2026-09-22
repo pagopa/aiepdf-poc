@@ -44,18 +44,29 @@ module "container_app" {
         "APPLICATIONINSIGHTS_INSTRUMENTATION_KEY",
       ]
 
+      # The release workflow waits at most 90 seconds for the new revision to
+      # become healthy, so the probes must not use the module defaults (30s
+      # initial delay and 3 consecutive readiness successes), which alone would
+      # consume most of that budget.
       liveness_probe = {
-        path = "/health"
+        path             = "/health"
+        initial_delay    = 15
+        interval_seconds = 10
       }
 
       readiness_probe = {
-        path = "/ready"
+        path                    = "/ready"
+        initial_delay           = 15
+        interval_seconds        = 5
+        success_count_threshold = 1
       }
 
       # Migrations run before the server listens; the startup probe tolerates the
       # first boot without restarting the revision.
       startup_probe = {
-        path = "/health"
+        path             = "/health"
+        initial_delay    = 15
+        interval_seconds = 5
       }
     },
   ]
