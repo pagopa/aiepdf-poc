@@ -1,0 +1,21 @@
+# Docker build context is the repository root (see the release workflow and the
+# `docker:build` target in apps/adhesion-api/package.json). Dependencies and
+# build outputs are produced inside the image, so keep them and the
+# infrastructure files out of the context.
+.git
+.github
+.nx
+.vscode
+.devcontainer
+infra
+docs
+scripts
+node_modules
+**/node_modules
+**/dist
+**/out-tsc
+**/coverage
+**/.terraform
+**/*.tfstate
+**/*.tfstate.*
+*.log

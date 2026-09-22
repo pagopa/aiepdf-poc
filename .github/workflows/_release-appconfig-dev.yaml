@@ -6,6 +6,11 @@ name: App Configuration settings - dev
 #
 # The instance name must match the Terraform output (`app_configuration_endpoint`
 # belongs to `dx-d-itn-aiepdf-adhesion-appcs-01` in `infra/resources/dev`).
+#
+# The store disables local authentication and public network access, so the
+# import runs on the repository's private runner (label `dev`) and uses the
+# `app-dev-cd` identity, which the bootstrapper grants `App Configuration Data
+# Owner` on the repository resource group.
 
 on:
   workflow_dispatch:
@@ -23,7 +28,9 @@ permissions:
 jobs:
   deploy:
     name: Deploy App Settings (dev)
-    runs-on: ubuntu-latest
+    # Private runner registered by the bootstrapper, reachable to the App
+    # Configuration private endpoint.
+    runs-on: [self-hosted, dev]
     environment: app-dev-cd
     steps:
       - name: Checkout
@@ -37,16 +44,13 @@ jobs:
           subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
 
       - name: Deploy AppSettings
-        uses: azure/cli@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            az appconfig kv import \
-              --name dx-d-itn-aiepdf-adhesion-appcs-01 \
-              --auth-mode login \
-              --source file \
-              --path apps/adhesion-api/appsettings.json \
-              --content-type "application/json" \
-              --separator : \
-              --format json \
-              --yes
+        run: |
+          az appconfig kv import \
+            --name dx-d-itn-aiepdf-adhesion-appcs-01 \
+            --auth-mode login \
+            --source file \
+            --path apps/adhesion-api/appsettings.json \
+            --content-type "application/json" \
+            --separator : \
+            --format json \
+            --yes

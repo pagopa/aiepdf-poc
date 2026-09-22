@@ -73,3 +73,18 @@ module "azure-DEV-DEVEX_bootstrap" {
 
   tags = local.bootstrapper_tags
 }
+
+# App Configuration deploy identity.
+#
+# `_release-appconfig-dev.yaml` imports settings with the App CD identity, and
+# the App Configuration store disables local authentication and public network
+# access: the identity therefore needs a data-plane role. The store lives in the
+# repository resource group, so scope the grant there.
+resource "azurerm_role_assignment" "app_cd_appconfig_data_owner" {
+  provider = azurerm.DEV-DEVEX
+
+  scope                = module.azure-DEV-DEVEX_bootstrap.resource_group.id
+  role_definition_name = "App Configuration Data Owner"
+  principal_id         = module.azure-DEV-DEVEX_bootstrap.identities.app.cd.principal_id
+  description          = "Allow the aiepdf-poc App CD identity to import settings into App Configuration"
+}
