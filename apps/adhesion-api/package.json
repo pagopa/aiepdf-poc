@@ -64,10 +64,10 @@
         }
       },
       "docker:build": {
-        "dependsOn": [
-          "build",
-          "prune"
-        ]
+        "options": {
+          "cwd": ".",
+          "command": "docker build --file apps/adhesion-api/Dockerfile ."
+        }
       },
       "test:integration": {
         "executor": "nx:run-commands",
