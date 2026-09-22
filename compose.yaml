@@ -1,0 +1,106 @@
+# Local containerized environment for the CED Adhesion pilot.
+#
+# Brings up the full stack: PostgreSQL (practice registry), Azurite (agreement
+# blob storage), the adhesion-api container, and nginx serving the built static
+# UI. Use the `mise` tasks in the repo root, which build the artifacts first:
+#
+#   mise run local:up     # build api + web, then start everything
+#   mise run local:down   # stop and remove volumes
+#
+# Secrets here are local-only development values, never real credentials.
+
+name: adhesion-pilot
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: adhesion
+      POSTGRES_USER: adhesion
+      POSTGRES_PASSWORD: adhesion
+    ports:
+      # Overridable to avoid clashing with existing local databases.
+      - "${POSTGRES_HOST_PORT:-15432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U adhesion -d adhesion"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    command:
+      [
+        "azurite-blob",
+        "--blobHost",
+        "0.0.0.0",
+        "--blobPort",
+        "10000",
+        "--loose",
+      ]
+    ports:
+      # Overridable to avoid clashing with other blob emulators.
+      - "${AZURITE_HOST_PORT:-11000}:10000"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"const s=require('net').connect(10000,'127.0.0.1');s.on('connect',()=>{s.end();process.exit(0)});s.on('error',()=>process.exit(1))\"",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api:
+    build:
+      context: apps/adhesion-api
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      azurite:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PERSISTENCE: postgres
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: adhesion
+      POSTGRES_ADMIN_PASSWORD: adhesion
+      POSTGRES_DB: adhesion
+      # Local PostgreSQL does not serve TLS.
+      POSTGRES_SSL: "false"
+      STORAGE: azure
+      # Well-known Azurite development account; not a real secret.
+      AZURE_STORAGE_CONNECTION_STRING: >-
+        DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+      AZURE_STORAGE_CONTAINER: agreements
+      AZURE_STORAGE_CREATE_CONTAINER: "true"
+      # Browser origin of the nginx-served UI in this compose stack.
+      CORS_ALLOWED_ORIGINS: "http://localhost:8080"
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:3000/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  web:
+    image: nginx:alpine
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    volumes:
+      # Built by `mise run local:build-web` with NEXT_PUBLIC_API_BASE_URL set.
+      - ./apps/adhesion-web/out:/usr/share/nginx/html:ro
+
+volumes:
+  postgres-data:

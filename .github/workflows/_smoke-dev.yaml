@@ -1,0 +1,63 @@
+name: Smoke test - dev
+
+# Runs the environment smoke test against the deployed dev API. Requires the
+# repository (or environment) variables SMOKE_API_BASE_URL, SMOKE_UI_ORIGIN and
+# optionally SMOKE_WEB_URL. Triggered manually or after a successful API deploy.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: API base URL to smoke-test
+        required: false
+        type: string
+  workflow_run:
+    workflows:
+      - "Adhesion API Container App - dev"
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Smoke test dev
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+
+      - name: Resolve target
+        id: target
+        env:
+          INPUT_BASE_URL: ${{ inputs.base_url }}
+          VAR_BASE_URL: ${{ vars.SMOKE_API_BASE_URL }}
+        run: |
+          set -euo pipefail
+          base_url="${INPUT_BASE_URL:-$VAR_BASE_URL}"
+          if [ -z "$base_url" ]; then
+            echo "::error::Set the SMOKE_API_BASE_URL repository variable or pass the base_url input."
+            exit 1
+          fi
+          echo "base_url=$base_url" >> "$GITHUB_OUTPUT"
+
+      - name: Run smoke test
+        env:
+          BASE_URL: ${{ steps.target.outputs.base_url }}
+          SMOKE_ORIGIN: ${{ vars.SMOKE_UI_ORIGIN }}
+          SMOKE_WEB_URL: ${{ vars.SMOKE_WEB_URL }}
+        run: |
+          set -euo pipefail
+          args=(--base-url "$BASE_URL")
+          [ -n "${SMOKE_ORIGIN:-}" ] && args+=(--origin "$SMOKE_ORIGIN")
+          [ -n "${SMOKE_WEB_URL:-}" ] && args+=(--web-url "$SMOKE_WEB_URL")
+          node scripts/smoke-test.mjs "${args[@]}"

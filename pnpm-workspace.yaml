@@ -7,4 +7,9 @@ packageImportMethod: "clone-or-copy"
 cleanupUnusedCatalogs: true
 
 onlyBuiltDependencies:
+  - "@parcel/watcher"
+  - "@swc/core"
+  - esbuild
   - nx
+  - sharp
+  - unrs-resolver

@@ -3,10 +3,10 @@ module "github_repository" {
   version = "~> 1.0"
 
   repository = {
-    name                   = "aiepdf-poc"
-    description            = "AIEPDF PoC"
-    topics                 = []
-    reviewers_teams        = []
-    environments           = ["dev", "prod"]
+    name            = "aiepdf-poc"
+    description     = "AIEPDF PoC"
+    topics          = []
+    reviewers_teams = []
+    environments    = ["dev", "prod"]
   }
 }

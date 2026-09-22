@@ -63,5 +63,13 @@ module "azure-DEV-DEVEX_bootstrap" {
   private_dns_zone_resource_group_id = module.azure-DEV-DEVEX_core_values.network_resource_group_id
   opex_resource_group_id             = module.azure-DEV-DEVEX_core_values.opex_resource_group_id
 
+  # The workload resources live in the resource group this module creates for
+  # the repository, but the pipelines still touch the common one: the PostgreSQL
+  # module writes the administrator password into the shared Key Vault, which
+  # sits there.
+  additional_resource_group_ids = [
+    module.azure-DEV-DEVEX_core_values.common_resource_group_id,
+  ]
+
   tags = local.bootstrapper_tags
 }

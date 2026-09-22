@@ -69,6 +69,20 @@ not use some of the suggested plugins, edit the related flags in that file.
 See the DX documentation for details:
 https://dx.pagopa.it/docs/coding-with-ai/plugin-marketplace
 
+## Local development
+
+The application can be run as a full containerized stack (PostgreSQL, Azurite,
+API, UI) with Docker Compose and `mise`:
+
+```bash
+mise run local:up      # build and start everything
+mise run local:smoke   # health, readiness and typed-error smoke tests
+mise run local:down
+```
+
+See [docs/local-development.md](docs/local-development.md) for ports, host-based
+development, and the canary rollout script.
+
 ## Useful commands
 
 This project uses `pnpm` and `nx` with workspaces to manage projects and dependencies. Here is a list of useful commands to work in this repo.

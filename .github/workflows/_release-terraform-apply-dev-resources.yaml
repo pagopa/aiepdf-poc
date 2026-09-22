@@ -1,0 +1,31 @@
+name: Terraform apply on dev resources
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "infra/resources/dev/**"
+      - "infra/resources/_modules/**"
+      - ".github/workflows/_release-terraform-apply-dev-resources.yaml"
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+jobs:
+  dev_resources_apply:
+    uses: pagopa/dx/.github/workflows/infra_apply.yaml@main
+    name: Dev resources - Apply
+    secrets: inherit
+    with:
+      environment: dev
+      base_path: infra/resources
+      # Private runner registered by the bootstrapper, labelled `dev` like this
+      # environment.
+      use_private_agent: true
+      use_labels: true
+      # The bootstrap module creates the GitHub environments as infra-<env>-ci/cd.
+      override_github_environment: infra-dev

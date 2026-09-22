@@ -1,0 +1,52 @@
+name: App Configuration settings - dev
+
+# Imports the pilot settings and feature flags into the Azure App Configuration
+# instance. Secrets are never stored in App Configuration; only Key Vault
+# references would be, and the pilot has none yet.
+#
+# The instance name must match the Terraform output (`app_configuration_endpoint`
+# belongs to `dx-d-itn-aiepdf-adhesion-appcs-01` in `infra/resources/dev`).
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/adhesion-api/appsettings.json"
+      - ".github/workflows/_release-appconfig-dev.yaml"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Deploy App Settings (dev)
+    runs-on: ubuntu-latest
+    environment: app-dev-cd
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Azure login
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+      - name: Deploy AppSettings
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az appconfig kv import \
+              --name dx-d-itn-aiepdf-adhesion-appcs-01 \
+              --auth-mode login \
+              --source file \
+              --path apps/adhesion-api/appsettings.json \
+              --content-type "application/json" \
+              --separator : \
+              --format json \
+              --yes

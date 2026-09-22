@@ -1,0 +1,34 @@
+name: Adhesion API Container App - dev
+
+# Builds and deploys the adhesion-api container image, then updates the
+# Container App. The resource names must match the Terraform outputs
+# (`container_app_name`, `resource_group_name`) in `infra/resources/dev`.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/adhesion-api/**"
+      - "packages/**"
+      - ".github/workflows/_release-container-app-api-dev.yaml"
+
+permissions:
+  contents: read
+  id-token: write
+  packages: write
+  attestations: write
+
+jobs:
+  release:
+    name: Release Adhesion API
+    uses: pagopa/dx/.github/workflows/release-azure-containerapp-v1.yaml@main
+    secrets: inherit
+    with:
+      dockerfile_path: ./apps/adhesion-api/Dockerfile
+      dockerfile_context: .
+      docker_image_name: pagopa/aiepdf-poc
+      container_app: dx-d-itn-aiepdf-adhesion-ca-01
+      resource_group_name: dx-d-itn-aiepdf-rg-01
+      environment: app-dev
