@@ -1,0 +1,173 @@
+name: Terraform destroy on dev resources
+
+# Destroys every resource managed by `infra/resources/dev`: the Container App
+# and its Environment, PostgreSQL, Storage Account, App Configuration, Static
+# Web App and their role assignments. It also removes the side effects on shared
+# resources (the PostgreSQL admin secret in the core Key Vault, the private DNS
+# records and the Container App subnet).
+#
+# The workload resource group (`dx-d-itn-aiepdf-rg-01`) is created by the
+# bootstrapper and is intentionally left in place.
+#
+# Flow: plan (read-only) -> manual approval -> apply of the exact saved plan.
+# Only the plan produced by the first job is applied, so what gets reviewed is
+# what gets executed. The run must be started manually from the `main` branch.
+#
+# It requires the `infra-dev-destroy-approval` GitHub environment, whose
+# protection rules hold the required reviewers that gate the destroy.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "destroy" to confirm the deletion of all dev resources'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+  ARM_USE_OIDC: true
+  ARM_USE_AZUREAD: true
+  ARM_STORAGE_USE_AZUREAD: true
+  TF_IN_AUTOMATION: true
+  # Kept in sync with the backend key and the plan/apply workflows.
+  WORKING_DIR: infra/resources/dev
+  PLAN_FILE: tfplan
+  PLAN_ARTIFACT: terraform-destroy-plan
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    name: Confirm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate confirmation
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          set -euo pipefail
+          if [ "$CONFIRM" != "destroy" ]; then
+            echo "::error title=Not confirmed::Pass \"destroy\" in the confirm input to proceed."
+            exit 1
+          fi
+
+  plan:
+    name: Terraform destroy plan
+    needs: [guard]
+    # Private runner registered by the bootstrapper, reachable to the private
+    # endpoints (Key Vault secret deletion, App Configuration, PostgreSQL).
+    runs-on: dev
+    environment:
+      name: infra-dev-ci
+      deployment: false
+    env:
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+    outputs:
+      to_destroy: ${{ steps.summary.outputs.to_destroy }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Azure login
+        uses: pagopa/dx/actions/csp-login@main
+
+      - name: Terraform setup
+        uses: pagopa/dx/.github/actions/terraform-setup@main
+
+      - name: Terraform init
+        working-directory: infra/resources/dev
+        run: terraform init -input=false
+
+      - name: Terraform plan (destroy)
+        working-directory: infra/resources/dev
+        run: |
+          set -euo pipefail
+          terraform plan \
+            -destroy \
+            -no-color \
+            -lock-timeout=120s \
+            -input=false \
+            -out="tfplan" | tee plan.txt
+
+          {
+            echo "### Terraform destroy plan"
+            echo ""
+            echo '```hcl'
+            cat plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Summarise changes
+        id: summary
+        working-directory: infra/resources/dev
+        run: |
+          set -euo pipefail
+          # The JSON plan holds cleartext sensitive values: only the count is
+          # extracted, never printed.
+          count=$(terraform show -json tfplan \
+            | jq '[.resource_changes[]? | select(.change.actions != ["no-op"])] | length')
+          echo "to_destroy=$count" >> "$GITHUB_OUTPUT"
+          echo "Resources to destroy: **$count**" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload destroy plan
+        uses: pagopa/dx/.github/actions/upload-artifact@main
+        with:
+          bundle_name: ${{ env.PLAN_ARTIFACT }}
+          file_path: ${{ env.WORKING_DIR }}/${{ env.PLAN_FILE }}
+          retention-days: "1"
+
+  approve:
+    name: Approve destroy
+    needs: [plan]
+    runs-on: ubuntu-latest
+    # No `deployment: false` here: the required reviewers of this environment
+    # are the approval gate. The job holds no cloud credentials.
+    environment:
+      name: infra-dev-destroy-approval
+    steps:
+      - name: Approved
+        run: echo "Destroy of ${{ needs.plan.outputs.to_destroy }} resources approved."
+
+  apply:
+    name: Terraform destroy apply
+    needs: [plan, approve]
+    runs-on: dev
+    environment:
+      name: infra-dev-cd
+    env:
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Download destroy plan
+        uses: pagopa/dx/.github/actions/download-artifact@main
+        with:
+          bundle_name: ${{ env.PLAN_ARTIFACT }}
+          file_path: ${{ env.WORKING_DIR }}
+
+      - name: Azure login
+        uses: pagopa/dx/actions/csp-login@main
+
+      - name: Terraform setup
+        uses: pagopa/dx/.github/actions/terraform-setup@main
+
+      - name: Terraform init
+        working-directory: infra/resources/dev
+        run: terraform init -input=false
+
+      - name: Terraform apply (destroy)
+        uses: pagopa/dx/actions/sanitize-terraform-apply@main
+        with:
+          base-path: infra/resources/dev
+          plan-file: tfplan
+          sensitive-keys: hidden-link,APPINSIGHTS_INSTRUMENTATIONKEY
