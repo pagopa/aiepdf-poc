@@ -13,6 +13,10 @@ name: Terraform destroy on dev resources
 # Only the plan produced by the first job is applied, so what gets reviewed is
 # what gets executed. The run must be started manually from the `main` branch.
 #
+# The plan file embeds Terraform state values, so it is encrypted with the
+# `ARTIFACT_ENC_KEY` secret before leaving the runner and decrypted only in the
+# apply job.
+#
 # It requires the `infra-dev-destroy-approval` GitHub environment, whose
 # protection rules hold the required reviewers that gate the destroy.
 
@@ -117,11 +121,14 @@ jobs:
           echo "to_destroy=$count" >> "$GITHUB_OUTPUT"
           echo "Resources to destroy: **$count**" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload destroy plan
-        uses: pagopa/dx/.github/actions/upload-artifact@main
+      - name: Upload destroy plan (encrypted)
+        uses: pagopa/dx/actions/terraform-plan-upload@main
+        env:
+          ARTIFACT_ENC_KEY: ${{ secrets.ARTIFACT_ENC_KEY }}
         with:
-          bundle_name: ${{ env.PLAN_ARTIFACT }}
-          file_path: ${{ env.WORKING_DIR }}/${{ env.PLAN_FILE }}
+          plan-file: ${{ env.PLAN_FILE }}
+          working-directory: ${{ env.WORKING_DIR }}
+          artifact-name: ${{ env.PLAN_ARTIFACT }}
           retention-days: "1"
 
   approve:
@@ -149,11 +156,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Download destroy plan
-        uses: pagopa/dx/.github/actions/download-artifact@main
+      - name: Download destroy plan (encrypted)
+        uses: pagopa/dx/actions/terraform-plan-download@main
+        env:
+          ARTIFACT_ENC_KEY: ${{ secrets.ARTIFACT_ENC_KEY }}
         with:
-          bundle_name: ${{ env.PLAN_ARTIFACT }}
-          file_path: ${{ env.WORKING_DIR }}
+          plan-file: ${{ env.PLAN_FILE }}
+          working-directory: ${{ env.WORKING_DIR }}
+          artifact-name: ${{ env.PLAN_ARTIFACT }}
 
       - name: Azure login
         uses: pagopa/dx/actions/csp-login@main
