@@ -81,10 +81,10 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Azure login
-        uses: pagopa/dx/actions/csp-login@main
+        uses: pagopa/dx/actions/csp-login@8ec64257f46bb8c03509d317b42fbf6a2da2c63a # main
 
       - name: Terraform setup
-        uses: pagopa/dx/.github/actions/terraform-setup@main
+        uses: pagopa/dx/.github/actions/terraform-setup@8ec64257f46bb8c03509d317b42fbf6a2da2c63a # main
 
       - name: Terraform init
         working-directory: infra/resources/dev
@@ -122,7 +122,7 @@ jobs:
           echo "Resources to destroy: **$count**" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload destroy plan (encrypted)
-        uses: pagopa/dx/actions/terraform-plan-upload@main
+        uses: pagopa/dx/actions/terraform-plan-upload@8ec64257f46bb8c03509d317b42fbf6a2da2c63a # main
         env:
           ARTIFACT_ENC_KEY: ${{ secrets.ARTIFACT_ENC_KEY }}
         with:
@@ -157,7 +157,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Download destroy plan (encrypted)
-        uses: pagopa/dx/actions/terraform-plan-download@main
+        uses: pagopa/dx/actions/terraform-plan-download@8ec64257f46bb8c03509d317b42fbf6a2da2c63a # main
         env:
           ARTIFACT_ENC_KEY: ${{ secrets.ARTIFACT_ENC_KEY }}
         with:
@@ -166,17 +166,17 @@ jobs:
           artifact-name: ${{ env.PLAN_ARTIFACT }}
 
       - name: Azure login
-        uses: pagopa/dx/actions/csp-login@main
+        uses: pagopa/dx/actions/csp-login@8ec64257f46bb8c03509d317b42fbf6a2da2c63a # main
 
       - name: Terraform setup
-        uses: pagopa/dx/.github/actions/terraform-setup@main
+        uses: pagopa/dx/.github/actions/terraform-setup@8ec64257f46bb8c03509d317b42fbf6a2da2c63a # main
 
       - name: Terraform init
         working-directory: infra/resources/dev
         run: terraform init -input=false
 
       - name: Terraform apply (destroy)
-        uses: pagopa/dx/actions/sanitize-terraform-apply@main
+        uses: pagopa/dx/actions/sanitize-terraform-apply@8ec64257f46bb8c03509d317b42fbf6a2da2c63a # main
         with:
           base-path: infra/resources/dev
           plan-file: tfplan
