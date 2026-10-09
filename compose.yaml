@@ -13,7 +13,7 @@ name: adhesion-pilot
 
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
     environment:
       POSTGRES_DB: adhesion
       POSTGRES_USER: adhesion
@@ -30,7 +30,7 @@ services:
       retries: 12
 
   azurite:
-    image: mcr.microsoft.com/azure-storage/azurite:latest
+    image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:830430c1da1a2d537e08f3e6764dd1f5ae00cf0346bcaf625b968ec3f0971fd5
     command:
       [
         "azurite-blob",
@@ -92,7 +92,7 @@ services:
       retries: 12
 
   web:
-    image: nginx:alpine
+    image: nginx:alpine@sha256:df221db836e1754089190208cee7eeda94f233197056426eda74a43ab1abeac2
     depends_on:
       api:
         condition: service_healthy

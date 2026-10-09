@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   dev_resources_apply:
-    uses: pagopa/dx/.github/workflows/infra_apply.yaml@main
+    uses: pagopa/dx/.github/workflows/infra_apply.yaml@8ec64257f46bb8c03509d317b42fbf6a2da2c63a # main
     name: Dev resources - Apply
     secrets: inherit
     with:
