@@ -12,7 +12,7 @@
 # For a local build use `nx docker:build adhesion-api`; run it with
 # `nx docker:run adhesion-api -p 3000:3000`.
 
-FROM public.ecr.aws/docker/library/node:24-alpine AS builder
+FROM public.ecr.aws/docker/library/node:24-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS builder
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -43,7 +43,7 @@ RUN pnpm exec nx run adhesion-api:prune
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     cd apps/adhesion-api/dist && pnpm install --prod --frozen-lockfile
 
-FROM public.ecr.aws/docker/library/node:24-alpine AS runtime
+FROM public.ecr.aws/docker/library/node:24-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS runtime
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
