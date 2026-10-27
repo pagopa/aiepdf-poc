@@ -31,7 +31,7 @@ permissions:
 jobs:
   deploy:
     name: Release Adhesion Web
-    uses: pagopa/dx/.github/workflows/release-azure-staticapp-v1.yaml@main
+    uses: pagopa/dx/.github/workflows/release-azure-staticapp-v1.yaml@2d911b3112294d4aaaeb702e58a14869dd37266e # main
     secrets: inherit
     with:
       workspace_name: adhesion-web

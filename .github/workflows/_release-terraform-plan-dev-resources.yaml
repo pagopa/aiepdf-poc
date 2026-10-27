@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   dev_resources_plan:
-    uses: pagopa/dx/.github/workflows/infra_plan.yaml@main
+    uses: pagopa/dx/.github/workflows/infra_plan.yaml@2d911b3112294d4aaaeb702e58a14869dd37266e # main
     name: Dev resources - Plan
     secrets: inherit
     with:

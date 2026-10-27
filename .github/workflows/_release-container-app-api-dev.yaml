@@ -23,7 +23,7 @@ permissions:
 jobs:
   release:
     name: Release Adhesion API
-    uses: pagopa/dx/.github/workflows/release-azure-containerapp-v1.yaml@main
+    uses: pagopa/dx/.github/workflows/release-azure-containerapp-v1.yaml@2d911b3112294d4aaaeb702e58a14869dd37266e # main
     secrets: inherit
     with:
       dockerfile_path: ./apps/adhesion-api/Dockerfile
